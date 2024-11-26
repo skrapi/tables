@@ -15,3 +15,9 @@ A cli for interacting with SQL databases.
 1. Start database: `./scripts/init_db.sh`
 1. If database already created, just run the migration: `SKIP_DOCKER=true ./scripts/init_db.sh` 
 1. Run the project: `cargo r -- -u postgres://app:secret@localhost:5432/newsletter`
+
+# Install locally
+```sh
+cargo install --path .
+tables --help
+```
