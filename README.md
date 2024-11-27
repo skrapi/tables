@@ -6,6 +6,7 @@ A cli for interacting with SQL databases.
 - [x] Create a test database to test against
 - [x] Create and confirm a database connection
 - [ ] Close connection gracefully
+- [ ] Open a REPL when just given a URL
 
 # Resources
 1. [Sample databases](https://github.com/lerocha/chinook-database)
