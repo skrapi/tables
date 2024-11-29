@@ -27,20 +27,26 @@ async fn main() -> Result<(), sqlx::Error> {
 
         println!("Connection successful!");
 
-        let results = sqlx::query(
-            r#"
-INSERT INTO subscriptions (id, email, name, subscribed_at)
-VALUES ($1, $2, $3, $4)
-"#,
-        )
-        .bind(Uuid::new_v4())
-        .bind("sylvan@hey.com")
-        .bind("Sylvan Smit")
-        .bind(Utc::now())
-        .execute(&pool)
-        .await?;
+        //        let results = sqlx::query(
+        //            r#"
+        //INSERT INTO subscriptions (id, email, name, subscribed_at)
+        //VALUES ($1, $2, $3, $4)
+        //"#,
+        //        )
+        //        .bind(Uuid::new_v4())
+        //        .bind("sylvan@hey.com")
+        //        .bind("Sylvan Smit")
+        //        .bind(Utc::now())
+        //        .execute(&pool)
+        //        .await?;
+        //
+        //        println!("{results:?}");
 
+        let results = sqlx::query("SELECT * FROM subscriptions")
+            .fetch_all(&pool)
+            .await?;
         println!("{results:?}");
     }
+
     Ok(())
 }
