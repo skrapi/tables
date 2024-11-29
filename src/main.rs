@@ -1,5 +1,7 @@
+use chrono::Utc;
 use clap::Parser;
 use sqlx::postgres::PgPoolOptions;
+use uuid::Uuid;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -25,12 +27,20 @@ async fn main() -> Result<(), sqlx::Error> {
 
         println!("Connection successful!");
 
-        let row: (i64,) = sqlx::query_as("SELECT $1")
-            .bind(150_i64)
-            .fetch_one(&pool)
-            .await?;
+        let results = sqlx::query(
+            r#"
+INSERT INTO subscriptions (id, email, name, subscribed_at)
+VALUES ($1, $2, $3, $4)
+"#,
+        )
+        .bind(Uuid::new_v4())
+        .bind("sylvan@hey.com")
+        .bind("Sylvan Smit")
+        .bind(Utc::now())
+        .execute(&pool)
+        .await?;
 
-        assert_eq!(row.0, 150);
+        println!("{results:?}");
     }
     Ok(())
 }
