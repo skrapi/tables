@@ -18,7 +18,8 @@ use ratatui::{
 
 #[derive(Debug, Default)]
 pub struct App {
-    counter: u8,
+    input: String,
+    history: Vec<String>,
     exit: bool,
 }
 impl App {
@@ -48,11 +49,25 @@ impl App {
         Ok(())
     }
 
+    fn handle_enter(&mut self) {
+        let input = self.input.clone();
+        self.input = String::default();
+
+        if input == "quit" {
+            self.exit();
+        }
+
+        self.history.push(input);
+    }
+
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            KeyCode::Left => self.decrement_counter(),
-            KeyCode::Right => self.increment_counter(),
+            KeyCode::Char(char) => self.input.push(char),
+            KeyCode::Backspace => {
+                // Ignore the returned value, we don't care
+                self.input.pop();
+            }
+            KeyCode::Enter => self.handle_enter(),
             _ => {}
         }
     }
@@ -60,39 +75,35 @@ impl App {
     fn exit(&mut self) {
         self.exit = true;
     }
-
-    fn increment_counter(&mut self) {
-        self.counter += 1;
-    }
-
-    fn decrement_counter(&mut self) {
-        self.counter -= 1;
-    }
 }
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let title = Line::from(" Counter App Tutorial ".bold());
-        let instructions = Line::from(vec![
-            " Decrement ".into(),
-            "<Left>".blue().bold(),
-            " Increment ".into(),
-            "<Right>".blue().bold(),
-            " Quit ".into(),
-            "<Q> ".blue().bold(),
-        ]);
+        let title = Line::from(" Tables ".bold());
+
+        let instructions = Line::from(vec!["type quit to quit ".into()]);
+
         let block = Block::bordered()
             .title(title.centered())
             .title_bottom(instructions.centered())
             .border_set(border::THICK);
 
-        let counter_text = Text::from(vec![Line::from(vec![
-            "Value: ".into(),
-            self.counter.to_string().yellow(),
-        ])]);
+        let mut lines = self
+            .history
+            .clone()
+            .into_iter()
+            .map(|x| Line::from(vec!["> ".to_string().yellow(), x.to_string().yellow()]))
+            .collect::<Vec<Line>>();
 
-        Paragraph::new(counter_text)
-            .centered()
+        lines.push(Line::from(vec![
+            "> ".to_string().yellow(),
+            self.input.to_string().yellow(),
+        ]));
+
+        let shell_text = Text::from(lines);
+
+        Paragraph::new(shell_text)
+            .left_aligned()
             .block(block)
             .render(area, buf);
     }
