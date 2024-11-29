@@ -3,6 +3,15 @@ use clap::Parser;
 use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 
+use std::io;
+
+use ratatui::{
+    crossterm::event::{self, KeyCode, KeyEventKind},
+    style::Stylize,
+    widgets::Paragraph,
+    DefaultTerminal,
+};
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -11,11 +20,35 @@ struct Args {
     url: Option<String>,
 }
 
+fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
+    loop {
+        terminal.draw(|frame| {
+            let greeting = Paragraph::new("Hello Ratatui! (press 'q' to quit)")
+                .white()
+                .on_blue();
+            frame.render_widget(greeting, frame.area());
+        })?;
+
+        if let event::Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                return Ok(());
+            }
+        }
+    }
+}
+
 // TODO Change the return sqlx::Error to a tables::Error, which can be returned gracefully to the
 // user.
 #[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
+async fn main() {
     let args = Args::parse();
+
+    // Set up terminal
+    let mut terminal = ratatui::init();
+    terminal.clear().unwrap();
+    let app_result = run(terminal);
+    ratatui::restore();
+    app_result.unwrap();
 
     if let Some(url) = args.url {
         println!("Connection URL: {url}");
@@ -23,7 +56,8 @@ async fn main() -> Result<(), sqlx::Error> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&url)
-            .await?;
+            .await
+            .unwrap();
 
         println!("Connection successful!");
 
@@ -44,9 +78,8 @@ async fn main() -> Result<(), sqlx::Error> {
 
         let results = sqlx::query("SELECT * FROM subscriptions")
             .fetch_all(&pool)
-            .await?;
+            .await
+            .unwrap();
         println!("{results:?}");
     }
-
-    Ok(())
 }
