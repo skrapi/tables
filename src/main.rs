@@ -32,7 +32,7 @@ async fn main() {
             db.run().await.unwrap()
         });
 
-        while let Some(_) = set.join_next().await {}
+        set.join_all().await;
         ratatui::restore();
     }
 }
