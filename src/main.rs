@@ -1,9 +1,7 @@
-use chrono::Utc;
 use clap::Parser;
-use sqlx::postgres::PgPoolOptions;
-use uuid::Uuid;
 
-use tables::app::App;
+use tables::db::Db;
+use tables::tui::App;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -18,41 +16,22 @@ async fn main() {
     let args = Args::parse();
 
     if let Some(url) = args.url {
-        println!("Connection URL: {url}");
-
         // Set up terminal
-        let mut terminal = ratatui::init();
-        let app_result = App::new(&url).run(&mut terminal);
+        let terminal = ratatui::init();
+
+        let app_result = tokio::spawn(async move {
+            let mut app = App::new();
+            app.run(terminal).await
+        });
+
+        let db_result = tokio::spawn(async move {
+            let mut db = Db::new(url.clone());
+            db.run().await
+        });
+
+        let _ = app_result.await.unwrap();
+        let _ = db_result.await.unwrap();
+
         ratatui::restore();
-        app_result.unwrap();
-
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&url)
-            .await
-            .unwrap();
-
-        println!("Connection successful!");
-
-        //        let results = sqlx::query(
-        //            r#"
-        //INSERT INTO subscriptions (id, email, name, subscribed_at)
-        //VALUES ($1, $2, $3, $4)
-        //"#,
-        //        )
-        //        .bind(Uuid::new_v4())
-        //        .bind("sylvan@hey.com")
-        //        .bind("Sylvan Smit")
-        //        .bind(Utc::now())
-        //        .execute(&pool)
-        //        .await?;
-        //
-        //        println!("{results:?}");
-
-        let results = sqlx::query("SELECT * FROM subscriptions")
-            .fetch_all(&pool)
-            .await
-            .unwrap();
-        println!("{results:?}");
     }
 }

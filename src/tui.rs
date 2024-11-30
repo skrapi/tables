@@ -10,27 +10,20 @@ use ratatui::{
 };
 use std::io;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct App {
     input: String,
     history: Vec<String>,
     exit: bool,
-    // TODO make this generic to sqlite and MySQL
-    db_connection_url: String,
 }
 
 impl App {
-    pub fn new(db_connection_url: impl ToString) -> Self {
-        Self {
-            input: String::new(),
-            history: Vec::new(),
-            exit: false,
-            db_connection_url: db_connection_url.to_string(),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// runs the application's main loop until the user quits
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+    pub async fn run(&mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
