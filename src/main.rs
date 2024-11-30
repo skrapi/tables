@@ -2,6 +2,7 @@ use clap::Parser;
 
 use tables::db::Db;
 use tables::tui::App;
+use tokio::task::JoinSet;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,19 +20,19 @@ async fn main() {
         // Set up terminal
         let terminal = ratatui::init();
 
-        let app_result = tokio::spawn(async move {
+        let mut set = JoinSet::new();
+
+        set.spawn(async move {
             let mut app = App::new();
-            app.run(terminal).await
+            app.run(terminal).await.unwrap()
         });
 
-        let db_result = tokio::spawn(async move {
+        set.spawn(async move {
             let mut db = Db::new(url.clone());
-            db.run().await
+            db.run().await.unwrap()
         });
 
-        let _ = app_result.await.unwrap();
-        let _ = db_result.await.unwrap();
-
+        while let Some(_) = set.join_next().await {}
         ratatui::restore();
     }
 }
