@@ -1,7 +1,8 @@
 use clap::Parser;
-
+use tables::communication::Message;
 use tables::db::Db;
 use tables::tui::App;
+use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
 #[derive(Parser, Debug)]
@@ -19,16 +20,18 @@ async fn main() {
     if let Some(url) = args.url {
         // Set up terminal
         let terminal = ratatui::init();
+        let (tui_tx, mut tui_rx) = mpsc::channel::<Message>(100);
+        let (db_tx, mut db_rx) = mpsc::channel::<Message>(100);
 
         let mut set = JoinSet::new();
 
         set.spawn(async move {
-            let mut app = App::new();
+            let mut app = App::new(tui_rx, db_tx);
             app.run(terminal).await.unwrap()
         });
 
         set.spawn(async move {
-            let mut db = Db::new(url.clone());
+            let mut db = Db::new(url.clone(), db_rx, tui_tx);
             db.run().await.unwrap()
         });
 

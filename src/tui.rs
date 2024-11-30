@@ -1,3 +1,4 @@
+use crate::communication::Message;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
@@ -9,17 +10,26 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 use std::io;
+use tokio::sync::mpsc;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App {
     input: String,
     history: Vec<String>,
     exit: bool,
+    tui_rx: mpsc::Receiver<Message>,
+    db_tx: mpsc::Sender<Message>,
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(tui_rx: mpsc::Receiver<Message>, db_tx: mpsc::Sender<Message>) -> Self {
+        Self {
+            input: String::new(),
+            history: Vec::new(),
+            exit: false,
+            tui_rx,
+            db_tx,
+        }
     }
 
     /// runs the application's main loop until the user quits
