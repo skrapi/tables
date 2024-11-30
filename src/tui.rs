@@ -1,4 +1,4 @@
-use crate::communication::Message;
+use crate::communication::{DbMessage, TuiMessage};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
@@ -17,12 +17,12 @@ pub struct App {
     input: String,
     history: Vec<String>,
     exit: bool,
-    tui_rx: mpsc::Receiver<Message>,
-    db_tx: mpsc::Sender<Message>,
+    tui_rx: mpsc::Receiver<TuiMessage>,
+    db_tx: mpsc::Sender<DbMessage>,
 }
 
 impl App {
-    pub fn new(tui_rx: mpsc::Receiver<Message>, db_tx: mpsc::Sender<Message>) -> Self {
+    pub fn new(tui_rx: mpsc::Receiver<TuiMessage>, db_tx: mpsc::Sender<DbMessage>) -> Self {
         Self {
             input: String::new(),
             history: Vec::new(),

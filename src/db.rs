@@ -3,17 +3,21 @@ use sqlx::Pool;
 use sqlx::Postgres;
 use tokio::sync::mpsc;
 
-use crate::communication::Message;
+use crate::communication::{DbMessage, TuiMessage};
 
 pub struct Db {
     connection_url: String,
     pool: Option<Pool<Postgres>>,
-    db_rx: mpsc::Receiver<Message>,
-    tui_tx: mpsc::Sender<Message>,
+    db_rx: mpsc::Receiver<DbMessage>,
+    tui_tx: mpsc::Sender<TuiMessage>,
 }
 
 impl Db {
-    pub fn new(url: String, db_rx: mpsc::Receiver<Message>, tui_tx: mpsc::Sender<Message>) -> Self {
+    pub fn new(
+        url: String,
+        db_rx: mpsc::Receiver<DbMessage>,
+        tui_tx: mpsc::Sender<TuiMessage>,
+    ) -> Self {
         Self {
             connection_url: url,
             pool: None,
