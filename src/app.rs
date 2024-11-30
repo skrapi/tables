@@ -19,6 +19,10 @@ pub struct App {
 }
 
 impl App {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// runs the application's main loop until the user quits
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.exit {
