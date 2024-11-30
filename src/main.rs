@@ -17,14 +17,14 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
-    // Set up terminal
-    let mut terminal = ratatui::init();
-    let app_result = App::new().run(&mut terminal);
-    ratatui::restore();
-    app_result.unwrap();
-
     if let Some(url) = args.url {
         println!("Connection URL: {url}");
+
+        // Set up terminal
+        let mut terminal = ratatui::init();
+        let app_result = App::new(&url).run(&mut terminal);
+        ratatui::restore();
+        app_result.unwrap();
 
         let pool = PgPoolOptions::new()
             .max_connections(5)

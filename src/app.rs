@@ -1,5 +1,3 @@
-use std::io;
-
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
@@ -10,17 +8,25 @@ use ratatui::{
     widgets::{Block, Paragraph, Widget},
     DefaultTerminal, Frame,
 };
+use std::io;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App {
     input: String,
     history: Vec<String>,
     exit: bool,
+    // TODO make this generic to sqlite and MySQL
+    db_connection_url: String,
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(db_connection_url: impl ToString) -> Self {
+        Self {
+            input: String::new(),
+            history: Vec::new(),
+            exit: false,
+            db_connection_url: db_connection_url.to_string(),
+        }
     }
 
     /// runs the application's main loop until the user quits
