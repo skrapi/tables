@@ -1,9 +1,11 @@
 #[derive(Debug)]
 pub enum DbMessage {
-    Test,
+    Query(String),
+    Quit,
 }
 
 #[derive(Debug)]
 pub enum TuiMessage {
-    Test,
+    QueryResponse(String),
+    Failure(String),
 }

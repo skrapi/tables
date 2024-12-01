@@ -10,11 +10,12 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 use std::io;
-use tokio::sync::mpsc;
+use tokio::{select, sync::mpsc};
 
 #[derive(Debug)]
 pub struct App {
     input: String,
+    output: String,
     history: Vec<String>,
     exit: bool,
     tui_rx: mpsc::Receiver<TuiMessage>,
@@ -29,6 +30,7 @@ impl App {
             exit: false,
             tui_rx,
             db_tx,
+            output: String::new(),
         }
     }
 
@@ -36,7 +38,7 @@ impl App {
     pub async fn run(&mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
-            self.handle_events()?;
+            self.handle_events().await?;
         }
         Ok(())
     }
@@ -46,37 +48,46 @@ impl App {
     }
 
     /// updates the application's state based on user input
-    fn handle_events(&mut self) -> io::Result<()> {
+    async fn handle_events(&mut self) -> io::Result<()> {
         match event::read()? {
             // it's important to check that the event is a key press event as
             // crossterm also emits key release and repeat events on Windows.
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
+                self.handle_key_event(key_event).await
             }
             _ => {}
         };
         Ok(())
     }
 
-    fn handle_enter(&mut self) {
+    async fn handle_enter(&mut self) {
         let input = self.input.clone();
         self.input = String::default();
 
         if input == "quit" {
             self.exit();
+            let _ = self.db_tx.send(DbMessage::Quit).await;
+        } else {
+            let _ = self.db_tx.send(DbMessage::Query(input.clone())).await;
+            if let Some(response) = self.tui_rx.recv().await {
+                match response {
+                    TuiMessage::QueryResponse(value) => self.output = value,
+                    TuiMessage::Failure(value) => self.output = value,
+                }
+            }
         }
 
         self.history.push(input);
     }
 
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
+    async fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char(char) => self.input.push(char),
             KeyCode::Backspace => {
                 // Ignore the returned value, we don't care
                 self.input.pop();
             }
-            KeyCode::Enter => self.handle_enter(),
+            KeyCode::Enter => self.handle_enter().await,
             _ => {}
         }
     }
@@ -109,6 +120,13 @@ impl Widget for &App {
             self.input.to_string().yellow(),
         ]));
 
+        if self.output.is_empty() == false {
+            lines.push(Line::from(vec![
+                "> ".to_string().yellow(),
+                self.output.to_string().blue(),
+            ]));
+        }
+
         let shell_text = Text::from(lines);
 
         Paragraph::new(shell_text)
@@ -119,48 +137,4 @@ impl Widget for &App {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::style::Style;
-
-    #[test]
-    fn render() {
-        let app = App::default();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 50, 4));
-
-        app.render(buf.area, &mut buf);
-
-        let mut expected = Buffer::with_lines(vec![
-            "┏━━━━━━━━━━━━━ Counter App Tutorial ━━━━━━━━━━━━━┓",
-            "┃                    Value: 0                    ┃",
-            "┃                                                ┃",
-            "┗━ Decrement <Left> Increment <Right> Quit <Q> ━━┛",
-        ]);
-        let title_style = Style::new().bold();
-        let counter_style = Style::new().yellow();
-        let key_style = Style::new().blue().bold();
-        expected.set_style(Rect::new(14, 0, 22, 1), title_style);
-        expected.set_style(Rect::new(28, 1, 1, 1), counter_style);
-        expected.set_style(Rect::new(13, 3, 6, 1), key_style);
-        expected.set_style(Rect::new(30, 3, 7, 1), key_style);
-        expected.set_style(Rect::new(43, 3, 4, 1), key_style);
-
-        assert_eq!(buf, expected);
-    }
-
-    #[test]
-    fn handle_key_event() -> io::Result<()> {
-        let mut app = App::default();
-        app.handle_key_event(KeyCode::Right.into());
-        assert_eq!(app.counter, 1);
-
-        app.handle_key_event(KeyCode::Left.into());
-        assert_eq!(app.counter, 0);
-
-        let mut app = App::default();
-        app.handle_key_event(KeyCode::Char('q').into());
-        assert!(app.exit);
-
-        Ok(())
-    }
-}
+mod tests {}

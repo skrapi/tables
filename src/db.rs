@@ -10,6 +10,7 @@ pub struct Db {
     pool: Option<Pool<Postgres>>,
     db_rx: mpsc::Receiver<DbMessage>,
     tui_tx: mpsc::Sender<TuiMessage>,
+    exit: bool,
 }
 
 impl Db {
@@ -23,11 +24,41 @@ impl Db {
             pool: None,
             db_rx,
             tui_tx,
+            exit: false,
         }
     }
 
     pub async fn run(&mut self) -> Result<(), sqlx::Error> {
         self.connect().await?;
+
+        while !self.exit {
+            if let (Some(pool), Some(message)) = (&self.pool, self.db_rx.recv().await) {
+                match message {
+                    DbMessage::Query(query_string) => {
+                        // "SELECT * FROM subscriptions"
+                        match sqlx::query(&query_string).fetch_all(pool).await {
+                            Ok(response) => {
+                                let _ = self
+                                    .tui_tx
+                                    .send(TuiMessage::QueryResponse(
+                                        format!("{response:?}").to_string(),
+                                    ))
+                                    .await;
+                            }
+                            Err(error) => {
+                                let _ = self
+                                    .tui_tx
+                                    .send(TuiMessage::Failure(error.to_string()))
+                                    .await;
+                            }
+                        }
+                    }
+                    DbMessage::Quit => self.exit = true,
+                }
+            }
+        }
+        Ok(())
+
         //eprintln!("Connection successful!");
 
         //        let results = sqlx::query(
@@ -44,16 +75,10 @@ impl Db {
         //        .await?;
         //
         //        println!("{results:?}");
-        if let Some(pool) = &self.pool {
-            let _results = sqlx::query("SELECT * FROM subscriptions")
-                .fetch_all(pool)
-                .await
-                .unwrap();
-            //eprintln!("{results:?}");
-        }
-
-        Ok(())
+        //eprintln!("{results:?}");
     }
+
+    //async fn query(&mut self, query_string: String) -> Result<String, sqlx::Error> {}
 
     async fn connect(&mut self) -> Result<(), sqlx::Error> {
         self.pool = Some(

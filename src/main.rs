@@ -18,8 +18,8 @@ async fn main() {
     if let Some(url) = args.url {
         // Set up terminal
         let terminal = ratatui::init();
-        let (tui_tx, mut tui_rx) = mpsc::channel::<TuiMessage>(100);
-        let (db_tx, mut db_rx) = mpsc::channel::<DbMessage>(100);
+        let (tui_tx, tui_rx) = mpsc::channel::<TuiMessage>(100);
+        let (db_tx, db_rx) = mpsc::channel::<DbMessage>(100);
 
         let mut set = JoinSet::new();
 
