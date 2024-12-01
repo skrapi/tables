@@ -6,9 +6,10 @@ A cli for interacting with SQL databases.
 - [x] Create a test database to test against
 - [x] Create and confirm a database connection
 - [x] Open a REPL when just given a URL
+- [x] Take input from stdin and send to Db
+- [x] Take Db response and display in TUI
+- [ ] Add using arrow keys to use old inputs
 - [ ] Close connection gracefully
-- [ ] Take input from stdin and send to Db
-- [ ] Take Db response and display in TUI
 
 # Resources
 1. [Sample databases](https://github.com/lerocha/chinook-database)

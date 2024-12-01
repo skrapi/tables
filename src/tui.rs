@@ -10,13 +10,14 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 use std::io;
-use tokio::{select, sync::mpsc};
+use tokio::sync::mpsc;
 
 #[derive(Debug)]
 pub struct App {
     input: String,
     output: String,
     history: Vec<String>,
+    history_index: usize,
     exit: bool,
     tui_rx: mpsc::Receiver<TuiMessage>,
     db_tx: mpsc::Sender<DbMessage>,
@@ -27,6 +28,7 @@ impl App {
         Self {
             input: String::new(),
             history: Vec::new(),
+            history_index: 0,
             exit: false,
             tui_rx,
             db_tx,
@@ -55,6 +57,9 @@ impl App {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 self.handle_key_event(key_event).await
             }
+            Event::Paste(pasted_text) => {
+                self.input.push_str(&pasted_text);
+            }
             _ => {}
         };
         Ok(())
@@ -77,7 +82,12 @@ impl App {
             }
         }
 
-        self.history.push(input);
+        self.add_to_history(&input);
+    }
+
+    fn add_to_history(&mut self, input: &str) {
+        self.history.push(input.to_string());
+        self.history_index = self.history.len();
     }
 
     async fn handle_key_event(&mut self, key_event: KeyEvent) {
